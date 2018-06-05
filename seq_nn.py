@@ -1,6 +1,8 @@
 import sys
+import os
 import numpy as np
 from numpy import genfromtxt
+
 rawTrainData = genfromtxt('seqData.csv', delimiter=',')
 rawTestData = genfromtxt('seqDataTest.csv', delimiter=',')
 
@@ -59,6 +61,10 @@ y = tf.placeholder('float')
 def neural_network_model(data):
     # dictionaries containing configurations of weights and biases in layers
 
+    #tf.set_random_seed(1)  Accuracy: 0.97525
+    #tf.set_random_seed(7) Accuracy: 1.0
+    tf.set_random_seed(1)
+
     hidden_1_layer = {'weights': tf.Variable(tf.random_normal([100, n_nodes_hl1])),
                       'biases': tf.Variable(tf.random_normal([n_nodes_hl1]))}
 
@@ -89,7 +95,6 @@ def neural_network_model(data):
     l3 = tf.nn.elu(l3)
 
     output = tf.matmul(l3, output_layer['weights']) + output_layer['biases']
-
     return output
 
 
@@ -122,8 +127,8 @@ def train_neural_network(x):
                 batch_index += batch_size
                 epoch_loss += c
 
-            # if new loss is smaller than previous step
-            if loss_at_previous_step > epoch_loss:
+            # Early stopping:
+            if loss_at_previous_step > epoch_loss:  # if new loss is smaller than previous step
                 loss_at_previous_step = epoch_loss
             else:
                 print('Early stopping: ', epoch_loss, " ",loss_at_previous_step)
@@ -139,5 +144,28 @@ def train_neural_network(x):
         accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
         print('Accuracy:', accuracy.eval({x: labelled_data_Test[0], y: labelled_data_Test[1]}))
 
+        saver = tf.train.Saver()
+        save_path = saver.save(sess, "./trained_model.ckpt")
+
+        # print values of variables
+        tvars = tf.trainable_variables()
+        tvars_vals = sess.run(tvars)
+
+        for var, val in zip(tvars, tvars_vals):
+            print(var.name, val)  # Prints the name of the variable alongside its value.
+
+    '''
+    validationData = genfromtxt('seqData1.csv', delimiter=',')
+
+    # set up labelled training data
+    x_Seq_validation = rawTrainData[0:10, 0:100]
+    y_label_validation = rawTrainData[0:10, 100:102]
+    labelled_data_validation = (x_Seq, y_label)
+    labelled_data_validation[0][0]  # one new sequence
+    labelled_data_validation[0][0]  # another new sequence
+    '''
+
+
 
 train_neural_network(x)
+
